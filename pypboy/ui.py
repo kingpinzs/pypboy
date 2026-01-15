@@ -12,13 +12,19 @@ class Header(game.Entity):
         super(Header, self).__init__((config.WIDTH, config.HEIGHT))
         self.rect[0] = 4
         self._date = None
+        self._headline = None
+        self._title = None
 
     def update(self, *args, **kwargs):
         super(Header, self).update(*args, **kwargs)
 
     def render(self, *args, **kwargs):
-        new_date = datetime.datetime.now().strftime("%d.%m.%y.%H:%M:%S") #need to be moved to footer and under the data and maps section
-        if new_date != self._date:
+        new_date = datetime.datetime.now().strftime("%d.%m.%y.%H:%M:%S")
+        # Check if date, headline, or title changed
+        needs_redraw = (new_date != self._date or
+                       self.headline != self._headline or
+                       self.title != self._title)
+        if needs_redraw:
             self.image.fill((0, 0, 0))
             pygame.draw.line(self.image, (95, 255, 177), (5, 15), (5, 35), 2)
             #pygame.draw.line(self.image, (95, 255, 177), (5, 15), (config.WIDTH - 154, 15), 2)
@@ -38,9 +44,11 @@ class Header(game.Entity):
                 self.image.blit(text, (config.WIDTH - headerposcount, 19))
                 pygame.draw.line(self.image, (95, 255, 177), (config.WIDTH - headerposcount, 15), (config.WIDTH - headerposcount_old, 15), 2) # Horizontal Bar
             pygame.draw.line(self.image, (95, 255, 177), (5, 15), (config.WIDTH - headerposcount, 15), 2) # Horizontal Bar
-            text = config.FONTS[14].render("  %s  " % self.headline, True, (105, 251, 187), (0, 0, 0))
+            text = config.FONTS[14].render("  %s  " % self.headline, True, (95, 255, 177), (0, 0, 0))
             self.image.blit(text, (26, 8))
             self._date = new_date
+            self._headline = self.headline
+            self._title = self.title[:]  # Copy to track changes
             
 
 

@@ -8,7 +8,7 @@ from pypboy.modules.items import ammo
 
 class Module(BaseModule):
 
-	label = "ITEMS"
+	label = "INV"
 	GPIO_LED_ID = 21
 
 	def __init__(self, *args, **kwargs):
@@ -20,3 +20,8 @@ class Module(BaseModule):
 			ammo.Module(self)
 		]
 		super(Module, self).__init__(*args, **kwargs)
+
+	def handle_resume(self):
+		self.pypboy.header.headline = self.label
+		self.pypboy.header.title = []
+		self.active.handle_action("resume")

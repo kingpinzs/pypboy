@@ -6,7 +6,12 @@ import config
 
 class Module(pypboy.SubModule):
 
-	label = " Apparel "
+	label = "Apparel"
 
 	def __init__(self, *args, **kwargs):
 		super(Module, self).__init__(*args, **kwargs)
+
+	def handle_resume(self):
+		self.parent.pypboy.header.headline = "INV"
+		self.parent.pypboy.header.title = [self.label]
+		super(Module, self).handle_resume()
