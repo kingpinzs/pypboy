@@ -18,6 +18,8 @@ Based on Fallout: New Vegas Pip-Boy radio screen:
 | File | Description |
 |------|-------------|
 | `pypboy/modules/data/waveform.py` | RadioWaveform Entity class - animated waveform visualization |
+| `pypboy/modules/data/waveform_cache.py` | WaveformCache class - audio analysis and caching system |
+| `sounds/radio/*/*.waveform` | Pre-cached waveform data for all audio files |
 
 ### Files Modified
 | File | Changes |
@@ -88,12 +90,18 @@ RADIO_WAVEFORM_AXIS_COLOR = (60, 180, 120)
 
 ## Technical Notes
 
-### Waveform Animation
-pygame.mixer.music doesn't expose raw audio buffers, so we use a **procedural animated waveform**:
-- `pygame.mixer.music.get_pos()` drives animation timing
-- Multiple overlapping sine waves create complex waveform appearance
-- Amplitude modulation varies wave height over time
-- Matches visual style in reference screenshot
+### Waveform Animation (Real Audio Data)
+The waveform now displays **real audio data** from the playing song:
+- Audio files are analyzed once and cached to `.waveform` files
+- Cache files store amplitude envelope at 50 samples/second
+- Cached data is committed to git so no runtime analysis needed
+- `pygame.mixer.music.get_pos()` syncs display to current playback position
+
+### Waveform Cache System
+- **Cache file format**: JSON with duration, sample_rate, and envelope array
+- **Cache location**: Same directory as audio file with `.waveform` extension
+- **Auto-generation**: New files are automatically analyzed on first play
+- **Pre-cached**: All existing audio files have cache files committed
 
 ### Station List
 1. OFF (index 0) - Stops music immediately

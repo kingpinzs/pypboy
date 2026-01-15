@@ -75,13 +75,19 @@ class Module(pypboy.SubModule):
             self.active_station = selected
             self.active_station.play_random()
             if hasattr(self, 'waveform'):
-                self.waveform.set_playing(True)
+                # Pass the current audio file for real waveform visualization
+                audio_file = getattr(self.active_station, 'filename', None)
+                self.waveform.set_playing(True, filepath=audio_file)
 
     def handle_event(self, event):
         """Handle song end event to play next track."""
         if event.type == config.EVENTS['SONG_END']:
             if hasattr(self, 'active_station') and self.active_station:
                 self.active_station.play_random()
+                # Update waveform with new audio file
+                if hasattr(self, 'waveform'):
+                    audio_file = getattr(self.active_station, 'filename', None)
+                    self.waveform.set_audio_file(audio_file)
 
     def render(self, interval):
         """Render the waveform animation."""

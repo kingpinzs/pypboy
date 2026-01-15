@@ -2,13 +2,14 @@ import game
 import pygame
 import math
 import config
+from pypboy.modules.data.waveform_cache import waveform_cache
 
 
 class RadioWaveform(game.Entity):
     """
-    Animated waveform visualization for the radio module.
+    Real-time waveform visualization for the radio module.
+    Displays actual audio waveform data from cached analysis.
     Matches Fallout Pip-Boy aesthetic with axis tick marks.
-    Displays a modulated sine wave when playing, flat line when stopped.
     """
 
     # Pip-Boy green colors (use config if available, else defaults)
@@ -16,17 +17,16 @@ class RadioWaveform(game.Entity):
     COLOR_SECONDARY = getattr(config, 'RADIO_WAVEFORM_AXIS_COLOR', (60, 180, 120))
     COLOR_DIM = (40, 120, 80)         # Dim green for flat line
 
+    # How many seconds of audio to show in the visualization window
+    DISPLAY_WINDOW = 3.0  # Show 3 seconds of waveform
+
     def __init__(self, width=240, height=180):
         super(RadioWaveform, self).__init__((width, height))
         self.width = width
         self.height = height
         self.is_playing = False
+        self.current_file = None
         self.time_offset = 0.0
-
-        # Waveform parameters
-        self.wave_frequency = 0.15
-        self.amplitude_base = 0.3
-        self.amplitude_mod = 0.5
 
         # Calculate plot area with margins for axes
         self.margin_left = 5
@@ -94,9 +94,19 @@ class RadioWaveform(game.Entity):
             (self.plot_x + self.plot_width, self.center_y), 1
         )
 
-    def set_playing(self, playing):
-        """Set the playing state."""
+    def set_audio_file(self, filepath):
+        """Set the current audio file for visualization."""
+        self.current_file = filepath
+        # Pre-cache the waveform data (will analyze if not cached)
+        if filepath:
+            waveform_cache.get_waveform(filepath)
+
+    def set_playing(self, playing, filepath=None):
+        """Set the playing state and optionally update the audio file."""
         self.is_playing = playing
+        if filepath:
+            self.set_audio_file(filepath)
+
         if not playing:
             # Reset to flat line
             self.image.blit(self.background, (0, 0))
@@ -104,12 +114,12 @@ class RadioWaveform(game.Entity):
             self.dirty = 1
 
     def render(self, interval):
-        """Render the waveform animation."""
+        """Render the waveform using real audio data."""
         if not self.is_playing:
             return
 
-        # Get music position for animation timing
-        music_pos = self.time_offset
+        # Get current playback position
+        music_pos = 0
         if config.SOUND_ENABLED:
             try:
                 if pygame.mixer.music.get_busy():
@@ -122,32 +132,39 @@ class RadioWaveform(game.Entity):
         # Clear to background (with axes)
         self.image.blit(self.background, (0, 0))
 
-        # Generate waveform points
-        points = []
-        for i in range(self.plot_width):
-            x = self.plot_x + i
+        # Get waveform data
+        if self.current_file:
+            # Get amplitude data for the display window centered on current position
+            start_time = max(0, music_pos - self.DISPLAY_WINDOW / 2)
+            end_time = music_pos + self.DISPLAY_WINDOW / 2
 
-            # Create modulated sine wave similar to reference screenshot
-            t = music_pos * 50 + i * self.wave_frequency
+            amplitudes = waveform_cache.get_amplitude_range(
+                self.current_file,
+                start_time,
+                end_time,
+                self.plot_width
+            )
 
-            # Multiple overlapping sine waves for complex waveform
-            wave1 = math.sin(t * 1.0) * 0.5
-            wave2 = math.sin(t * 2.3 + 1.5) * 0.3
-            wave3 = math.sin(t * 0.7 + 0.8) * 0.2
+            # Generate waveform points from real audio data
+            points = []
+            for i, amp in enumerate(amplitudes):
+                x = self.plot_x + i
 
-            # Amplitude modulation to vary wave height over time
-            amp_mod = 0.5 + 0.5 * math.sin(music_pos * 3 + i * 0.02)
+                # Create wave effect - oscillate based on amplitude
+                # This creates the characteristic "audio waveform" look
+                wave_offset = math.sin(music_pos * 20 + i * 0.3) * amp
 
-            combined = (wave1 + wave2 + wave3) * amp_mod
+                # Scale amplitude to plot area
+                y = self.center_y - int(wave_offset * self.plot_height * 0.45)
+                y = max(self.plot_y, min(self.plot_y + self.plot_height, y))
 
-            # Scale to plot area
-            y = self.center_y - int(combined * self.plot_height * 0.4)
-            y = max(self.plot_y, min(self.plot_y + self.plot_height, y))
+                points.append((x, y))
 
-            points.append((x, y))
-
-        # Draw waveform line
-        if len(points) > 1:
-            pygame.draw.lines(self.image, self.COLOR_PRIMARY, False, points, 2)
+            # Draw waveform line
+            if len(points) > 1:
+                pygame.draw.lines(self.image, self.COLOR_PRIMARY, False, points, 2)
+        else:
+            # Fallback: simple animated line if no audio file
+            self._draw_flat_line()
 
         self.dirty = 1
