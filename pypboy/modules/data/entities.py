@@ -139,7 +139,8 @@ class Map(game.Entity):
         if self._needs_display_update:
             self._needs_display_update = False
             self._apply_zoom()
-            self.dirty = 1  # Mark sprite as needing redraw
+        # Keep dirty=2 since screen is cleared each frame
+        self.dirty = 2
         super(Map, self).update(*args, **kwargs)
 
 class MapSquare(game.Entity):
