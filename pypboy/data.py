@@ -116,9 +116,6 @@ class Maps(object):
                                    for t2 in node['tag']:
                                            if t2["@k"] == "addr:street":
                                                    self.tags.append((float(node['@lat']), float(node['@lon']),tag["@v"]+" "+t2["@v"]))
-                                                   print(tag["@v"])
-                            if tag["@k"] == "tiger:county":
-                                print(tag["@v"])
                         except Exception:
                             pass
 

@@ -30,10 +30,9 @@ MAP_ZOOM_DEFAULT = 1.0           # Starting zoom level
 MAP_ZOOM_STEP = 0.15             # Zoom increment per keypress
 MAP_SMOOTHSCALE = False          # False = faster (scale), True = prettier (smoothscale)
 
-# World map settings (larger surface for extended panning)
+# World map settings (progressive loading)
 WORLD_MAP_SURFACE_SIZE = 960     # 2x screen width for pan area
-WORLD_MAP_RADIUS = 0.12          # Larger fetch radius (~27km)
-WORLD_MAP_BUFFER = 100           # Pixels from edge to trigger expansion
+WORLD_MAP_RADIUS = 0.12          # Target fetch radius (~27km)
 
 # Platform-specific settings (set by main.py via platform_detect)
 GPIO_AVAILABLE = False

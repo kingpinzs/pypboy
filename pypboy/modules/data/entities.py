@@ -10,8 +10,8 @@ from random import choice
 
 class Map(game.Entity):
     """
-    Map entity with surface-based zoom and infinite panning.
-    Expands surface and fetches more data as user pans toward edges.
+    Map entity with progressive loading - loads visible area first,
+    then expands in background while user can already interact.
     """
 
     _mapper = None
@@ -30,10 +30,11 @@ class Map(game.Entity):
         self._data_loaded = False
         self._is_loading = False
         self._needs_display_update = False
-        self._expand_buffer = 150  # Pixels from edge to trigger expansion
-        self._expand_amount = 480  # Pixels to expand by
-        self._geo_center = None    # Geographic center (lon, lat)
-        self._geo_radius = None    # Current geographic radius
+        self._geo_center = None       # Geographic center (lon, lat)
+        self._geo_radius = None       # Current geographic radius
+        self._target_radius = None    # Target radius for progressive loading
+        self._load_stage = 0          # 0=initial, 1=expanding, 2=complete
+        self._status_text = loading_type
 
         # Entity image is viewport-sized (what user sees), not full surface size
         viewport_size = (self._render_rect.width, self._render_rect.height)
@@ -42,36 +43,78 @@ class Map(game.Entity):
         self.image.blit(text, (10, 10))
 
     def fetch_map(self, position, radius):
+        """Start progressive loading - small area first, then expand."""
         if self._is_loading:
             return
         self._is_loading = True
         self._geo_center = position
-        self._geo_radius = radius
-        self._fetching = threading.Thread(target=self._internal_fetch_map, args=(position, radius))
+        self._target_radius = radius
+        # Start with 30% of target for fast initial load
+        initial_radius = radius * 0.3
+        self._geo_radius = initial_radius
+        self._load_stage = 0
+        self._fetching = threading.Thread(target=self._internal_fetch_progressive, args=(position, initial_radius))
         self._fetching.start()
 
-    def _internal_fetch_map(self, position, radius):
+    def _internal_fetch_progressive(self, position, radius):
+        """Fetch initial area, then progressively expand in background."""
+        print(f"[Map] Stage 0: Initial load (radius={radius:.4f})")
         self._mapper.fetch_by_coordinate(position, radius)
         self._redraw_map()
         self.center_viewport()
-        self._data_loaded = True
+        self._data_loaded = True  # User can interact now!
         self._is_loading = False
+        self._load_stage = 1
+
+        # Continue expanding in background
+        self._expand_progressively()
+
+    def _expand_progressively(self):
+        """Expand radius by 50% each stage until reaching target."""
+        while self._geo_radius < self._target_radius * 0.95:
+            # Wait a moment so user sees initial map
+            time.sleep(0.5)
+
+            if self._is_loading:
+                # Another operation in progress, wait
+                continue
+
+            # Calculate new radius (50% larger)
+            new_radius = min(self._geo_radius * 1.5, self._target_radius)
+            self._load_stage += 1
+            print(f"[Map] Stage {self._load_stage}: Expanding (radius={new_radius:.4f})")
+
+            # Fetch expanded area
+            self._is_loading = True
+            self._mapper = pypboy.data.Maps()  # Fresh mapper
+            self._mapper.fetch_by_coordinate(self._geo_center, new_radius)
+            self._geo_radius = new_radius
+            self._redraw_map()
+            self._is_loading = False
+
+        self._load_stage = -1  # Complete
+        print(f"[Map] Progressive loading complete")
 
     def load_map(self, position, radius):
+        """Load from cache - no progressive loading needed since cache is local."""
         if self._is_loading:
             return
         self._is_loading = True
         self._geo_center = position
         self._geo_radius = radius
+        self._target_radius = radius
         self._fetching = threading.Thread(target=self._internal_load_map, args=(position, radius))
         self._fetching.start()
 
     def _internal_load_map(self, position, radius):
+        """Load from local cache - fast, no progressive needed."""
+        print(f"[Map] Loading from cache (radius={radius:.4f})")
         self._mapper.load_map_coordinates(position, radius)
         self._redraw_map()
         self.center_viewport()
         self._data_loaded = True
         self._is_loading = False
+        self._load_stage = -1  # Complete
 
     def _redraw_map(self):
         """Render map data to _map_surface (called from background thread)."""
@@ -91,48 +134,6 @@ class Map(game.Entity):
                 self._map_surface.blit(text, (int(tag[1]) + 17, int(tag[2]) + 4))
 
         self._needs_display_update = True
-
-    def _expand_surface(self, direction):
-        """Expand the map surface in the given direction and fetch more data."""
-        if self._is_loading:
-            return
-
-        # Calculate new surface size and create it
-        old_size = self._size
-        new_size = old_size + self._expand_amount
-        new_surface = pygame.Surface((new_size, new_size))
-        new_surface.fill((0, 0, 0))
-
-        # Calculate offset for existing content based on direction
-        offset_x, offset_y = 0, 0
-        if direction == 'left':
-            offset_x = self._expand_amount
-        elif direction == 'up':
-            offset_y = self._expand_amount
-
-        # Copy existing content to new surface
-        new_surface.blit(self._map_surface, (offset_x, offset_y))
-
-        # Update surface and size
-        self._map_surface = new_surface
-        self._size = new_size
-
-        # Shift viewport to maintain view position
-        self._render_rect.x += offset_x
-        self._render_rect.y += offset_y
-
-        # Expand geographic radius and refetch all data
-        self._geo_radius *= 1.5
-        self._is_loading = True
-        self._fetching = threading.Thread(target=self._internal_expand, args=(self._geo_center, self._geo_radius))
-        self._fetching.start()
-
-    def _internal_expand(self, position, radius):
-        """Fetch expanded map data in background."""
-        self._mapper = pypboy.data.Maps()  # Fresh mapper
-        self._mapper.fetch_by_coordinate(position, radius)
-        self._redraw_map()
-        self._is_loading = False
 
     def _apply_zoom(self):
         """Apply current zoom level to display."""
@@ -181,21 +182,10 @@ class Map(game.Entity):
             print(f"Zoom: {self._zoom_level:.2f}")
 
     def move_map(self, x, y):
-        """Pan the map with infinite scrolling - expands surface when near edges."""
+        """Pan the map - clamped to pre-loaded area boundaries."""
         self._render_rect.move_ip(x, y)
 
-        # Check if approaching edges and expand if needed
-        if self._data_loaded and not self._is_loading:
-            if self._render_rect.x < self._expand_buffer:
-                self._expand_surface('left')
-            elif self._render_rect.right > self._size - self._expand_buffer:
-                self._expand_surface('right')
-            elif self._render_rect.y < self._expand_buffer:
-                self._expand_surface('up')
-            elif self._render_rect.bottom > self._size - self._expand_buffer:
-                self._expand_surface('down')
-
-        # Soft clamp to prevent going completely off surface while loading
+        # Clamp to surface boundaries
         max_x = self._size - self._render_rect.width
         max_y = self._size - self._render_rect.height
         self._render_rect.x = max(0, min(self._render_rect.x, max_x))
