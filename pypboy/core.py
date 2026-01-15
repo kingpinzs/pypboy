@@ -17,6 +17,14 @@ class Pypboy(game.core.Engine):
         if hasattr(config, 'OUTPUT_WIDTH') and hasattr(config, 'OUTPUT_HEIGHT'):
             self.rescale = True
         super(Pypboy, self).__init__(*args, **kwargs)
+
+        # Fetch area name from GPS coordinates
+        from pypboy.data import GeoLocation
+        geo = GeoLocation()
+        longitude, latitude = config.MAP_FOCUS
+        self.area_name = geo.get_area_name(longitude, latitude)
+        print(f"[Pypboy] Area: {self.area_name}")
+
         self.init_children()
         self.init_modules()
         

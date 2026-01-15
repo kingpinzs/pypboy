@@ -1,11 +1,12 @@
 import xmltodict
 import requests
-import numpy 
-from numpy.fft import fft 
-from math import log10 
+import numpy
+from numpy.fft import fft
+from math import log10
 import math
 import pygame
 import sys
+import json
 
 
 class Maps(object):
@@ -184,6 +185,70 @@ class Maps(object):
                 wp[2] += offset[1] * 2
             transtags.append(wp)
         return transtags
+
+
+class GeoLocation:
+    """Reverse geocoding using Nominatim API with caching."""
+
+    CACHE_FILE = "location.cache"
+    NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
+    USER_AGENT = "PypBoy/1.0 (Pip-Boy Emulator)"
+    TIMEOUT = 5
+    DEFAULT_AREA = "Local Area"
+
+    def get_area_name(self, longitude, latitude):
+        """Get area name from cache or API."""
+        cached = self._read_cache(longitude, latitude)
+        if cached:
+            return cached
+
+        area_name = self._fetch_from_api(longitude, latitude)
+        if area_name != self.DEFAULT_AREA:
+            self._write_cache(longitude, latitude, area_name)
+        return area_name
+
+    def _fetch_from_api(self, longitude, latitude):
+        """Fetch area name from Nominatim."""
+        try:
+            response = requests.get(
+                self.NOMINATIM_URL,
+                params={"lat": latitude, "lon": longitude, "format": "json", "addressdetails": 1},
+                headers={"User-Agent": self.USER_AGENT},
+                timeout=self.TIMEOUT
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # Priority: city > town > village > suburb > municipality > county
+            address = data.get("address", {})
+            for field in ["city", "town", "village", "suburb", "municipality", "county"]:
+                if field in address:
+                    return address[field]
+            return self.DEFAULT_AREA
+        except Exception as e:
+            print(f"[GeoLocation] API error: {e}")
+            return self.DEFAULT_AREA
+
+    def _read_cache(self, longitude, latitude):
+        """Read cached area name if coordinates match."""
+        try:
+            with open(self.CACHE_FILE, "r") as f:
+                cache = json.load(f)
+            if (abs(cache.get("longitude", 0) - longitude) < 0.001 and
+                abs(cache.get("latitude", 0) - latitude) < 0.001):
+                return cache.get("area_name")
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        return None
+
+    def _write_cache(self, longitude, latitude, area_name):
+        """Write area name to cache file."""
+        try:
+            with open(self.CACHE_FILE, "w") as f:
+                json.dump({"longitude": longitude, "latitude": latitude, "area_name": area_name}, f)
+        except Exception as e:
+            print(f"[GeoLocation] Cache write error: {e}")
+
 
 class SoundSpectrum: 
     """ 

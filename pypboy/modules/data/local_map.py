@@ -49,9 +49,9 @@ class Module(pypboy.SubModule):
         elif action == "zoom_out":
             self.mapgrid.zoom_out()  # Fast! Just scales surface
         self.parent.pypboy.header.headline = "DATA"
-        self.parent.pypboy.header.title = ["Santa Clarita"]
+        self.parent.pypboy.header.title = [self.parent.pypboy.area_name]
     
     def handle_resume(self):
         self.parent.pypboy.header.headline = "DATA"
-        self.parent.pypboy.header.title = ["Santa Clarita"]
+        self.parent.pypboy.header.title = [self.parent.pypboy.area_name]
         super(Module, self).handle_resume()
