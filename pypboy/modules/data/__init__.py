@@ -24,5 +24,6 @@ class Module(BaseModule):
     def handle_resume(self):
         self.pypboy.header.headline = self.label
         self.pypboy.header.title = [self.pypboy.area_name]
+        self.pypboy.header.show_date = True  # DATA module shows date/time
         self.active.handle_action("resume")
         

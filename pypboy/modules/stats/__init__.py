@@ -8,7 +8,7 @@ from pypboy.modules.stats import general
 
 class Module(BaseModule):
 
-    label = "STAT"
+    label = "STATS"
     GPIO_LED_ID = 30 #GPIO 22 #19
 
     def __init__(self, *args, **kwargs):
@@ -23,5 +23,6 @@ class Module(BaseModule):
         
     def handle_resume(self):
         self.pypboy.header.headline = self.label
-        self.pypboy.header.title = ["AP  75/99","HP  160/999", "LVL 20"]
+        self.pypboy.header.title = ["XP 819/1050", "AP 77/77", "HP 221/230", "LVL 3"]
+        self.pypboy.header.show_date = False  # STATS doesn't show date/time
         self.active.handle_action("resume")

@@ -10,8 +10,8 @@ from random import choice
 
 class Map(game.Entity):
     """
-    Map entity with surface-based zoom (Fallout Pip-Boy style).
-    Simplified version closer to original working code.
+    Map entity with surface-based zoom and infinite panning.
+    Expands surface and fetches more data as user pans toward edges.
     """
 
     _mapper = None
@@ -21,17 +21,23 @@ class Map(game.Entity):
     _render_rect = None
     _zoom_level = 1.0
 
-    def __init__(self, width, render_rect=None, loading_type="Loading map...", *args, **kwargs):
+    def __init__(self, surface_size, render_rect=None, loading_type="Loading map...", *args, **kwargs):
         self._mapper = pypboy.data.Maps()
-        self._size = width
-        self._map_surface = pygame.Surface((width, width))
-        self._render_rect = render_rect if render_rect else pygame.Rect(0, 0, width, width)
+        self._size = surface_size
+        self._map_surface = pygame.Surface((surface_size, surface_size))
+        self._render_rect = render_rect if render_rect else pygame.Rect(0, 0, surface_size, surface_size)
         self._zoom_level = config.MAP_ZOOM_DEFAULT
         self._data_loaded = False
         self._is_loading = False
-        self._needs_display_update = False  # Flag for thread-safe display updates
+        self._needs_display_update = False
+        self._expand_buffer = 150  # Pixels from edge to trigger expansion
+        self._expand_amount = 480  # Pixels to expand by
+        self._geo_center = None    # Geographic center (lon, lat)
+        self._geo_radius = None    # Current geographic radius
 
-        super(Map, self).__init__((width, width), *args, **kwargs)
+        # Entity image is viewport-sized (what user sees), not full surface size
+        viewport_size = (self._render_rect.width, self._render_rect.height)
+        super(Map, self).__init__(viewport_size, *args, **kwargs)
         text = config.FONTS[14].render(loading_type, True, (95, 255, 177), (0, 0, 0))
         self.image.blit(text, (10, 10))
 
@@ -39,12 +45,15 @@ class Map(game.Entity):
         if self._is_loading:
             return
         self._is_loading = True
+        self._geo_center = position
+        self._geo_radius = radius
         self._fetching = threading.Thread(target=self._internal_fetch_map, args=(position, radius))
         self._fetching.start()
 
     def _internal_fetch_map(self, position, radius):
         self._mapper.fetch_by_coordinate(position, radius)
         self._redraw_map()
+        self.center_viewport()
         self._data_loaded = True
         self._is_loading = False
 
@@ -52,12 +61,15 @@ class Map(game.Entity):
         if self._is_loading:
             return
         self._is_loading = True
+        self._geo_center = position
+        self._geo_radius = radius
         self._fetching = threading.Thread(target=self._internal_load_map, args=(position, radius))
         self._fetching.start()
 
     def _internal_load_map(self, position, radius):
         self._mapper.load_map_coordinates(position, radius)
         self._redraw_map()
+        self.center_viewport()
         self._data_loaded = True
         self._is_loading = False
 
@@ -78,8 +90,49 @@ class Map(game.Entity):
                 text = config.FONTS[12].render(tag[0], True, (95, 255, 177), (0, 0, 0))
                 self._map_surface.blit(text, (int(tag[1]) + 17, int(tag[2]) + 4))
 
-        # Signal main thread to update display (thread-safe)
         self._needs_display_update = True
+
+    def _expand_surface(self, direction):
+        """Expand the map surface in the given direction and fetch more data."""
+        if self._is_loading:
+            return
+
+        # Calculate new surface size and create it
+        old_size = self._size
+        new_size = old_size + self._expand_amount
+        new_surface = pygame.Surface((new_size, new_size))
+        new_surface.fill((0, 0, 0))
+
+        # Calculate offset for existing content based on direction
+        offset_x, offset_y = 0, 0
+        if direction == 'left':
+            offset_x = self._expand_amount
+        elif direction == 'up':
+            offset_y = self._expand_amount
+
+        # Copy existing content to new surface
+        new_surface.blit(self._map_surface, (offset_x, offset_y))
+
+        # Update surface and size
+        self._map_surface = new_surface
+        self._size = new_size
+
+        # Shift viewport to maintain view position
+        self._render_rect.x += offset_x
+        self._render_rect.y += offset_y
+
+        # Expand geographic radius and refetch all data
+        self._geo_radius *= 1.5
+        self._is_loading = True
+        self._fetching = threading.Thread(target=self._internal_expand, args=(self._geo_center, self._geo_radius))
+        self._fetching.start()
+
+    def _internal_expand(self, position, radius):
+        """Fetch expanded map data in background."""
+        self._mapper = pypboy.data.Maps()  # Fresh mapper
+        self._mapper.fetch_by_coordinate(position, radius)
+        self._redraw_map()
+        self._is_loading = False
 
     def _apply_zoom(self):
         """Apply current zoom level to display."""
@@ -128,11 +181,36 @@ class Map(game.Entity):
             print(f"Zoom: {self._zoom_level:.2f}")
 
     def move_map(self, x, y):
-        """Pan the map."""
+        """Pan the map with infinite scrolling - expands surface when near edges."""
         self._render_rect.move_ip(x, y)
+
+        # Check if approaching edges and expand if needed
+        if self._data_loaded and not self._is_loading:
+            if self._render_rect.x < self._expand_buffer:
+                self._expand_surface('left')
+            elif self._render_rect.right > self._size - self._expand_buffer:
+                self._expand_surface('right')
+            elif self._render_rect.y < self._expand_buffer:
+                self._expand_surface('up')
+            elif self._render_rect.bottom > self._size - self._expand_buffer:
+                self._expand_surface('down')
+
+        # Soft clamp to prevent going completely off surface while loading
+        max_x = self._size - self._render_rect.width
+        max_y = self._size - self._render_rect.height
+        self._render_rect.x = max(0, min(self._render_rect.x, max_x))
+        self._render_rect.y = max(0, min(self._render_rect.y, max_y))
+
         if self._data_loaded:
             self._apply_zoom()
             self.dirty = 1
+
+    def center_viewport(self):
+        """Center the viewport on the map surface."""
+        center_x = (self._size - self._render_rect.width) // 2
+        center_y = (self._size - self._render_rect.height) // 2
+        self._render_rect.x = max(0, center_x)
+        self._render_rect.y = max(0, center_y)
 
     def update(self, *args, **kwargs):
         # Check if background thread finished rendering and needs display update

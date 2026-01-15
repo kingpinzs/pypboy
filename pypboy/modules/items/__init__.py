@@ -24,4 +24,5 @@ class Module(BaseModule):
 	def handle_resume(self):
 		self.pypboy.header.headline = self.label
 		self.pypboy.header.title = []
+		self.pypboy.header.show_date = False  # INV doesn't show date/time
 		self.active.handle_action("resume")

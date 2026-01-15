@@ -12,14 +12,15 @@ class Module(pypboy.SubModule):
         super(Module, self).__init__(*args, **kwargs)
         self.dragging = False  # Track drag state for touch/mouse panning
 
-        # Create map with display rect - world map uses wider initial area
+        # Create map with display rect - world map uses larger surface for extended panning
         display_rect = pygame.Rect(0, 0, config.WIDTH - 8, config.HEIGHT - 80)
 
-        self.mapgrid = entities.Map(config.WIDTH, display_rect, "Loading map...")
+        # Use larger surface (2x screen) so user can pan without hitting edges
+        self.mapgrid = entities.Map(config.WORLD_MAP_SURFACE_SIZE, display_rect, "Loading map...")
         if config.LOAD_CACHED_MAP:
-            self.mapgrid.load_map(config.MAP_FOCUS, 0.1)  # Wider area for world map
+            self.mapgrid.load_map(config.MAP_FOCUS, config.WORLD_MAP_RADIUS)
         else:
-            self.mapgrid.fetch_map(config.MAP_FOCUS, 0.1)  # Wider area for world map
+            self.mapgrid.fetch_map(config.MAP_FOCUS, config.WORLD_MAP_RADIUS)
 
         self.add(self.mapgrid)
         self.mapgrid.rect[0] = 4

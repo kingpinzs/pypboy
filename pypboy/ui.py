@@ -9,32 +9,37 @@ class Header(game.Entity):
     def __init__(self, headline="", title=[]):
         self.headline = headline
         self.title = []
+        self.show_date = False  # Only DATA module shows date/time
         super(Header, self).__init__((config.WIDTH, config.HEIGHT))
         self.rect[0] = 4
         self._date = None
         self._headline = None
         self._title = None
+        self._show_date = None
 
     def update(self, *args, **kwargs):
         super(Header, self).update(*args, **kwargs)
 
     def render(self, *args, **kwargs):
         new_date = datetime.datetime.now().strftime("%d.%m.%y.%H:%M:%S")
-        # Check if date, headline, or title changed
+        # Check if date, headline, title, or show_date changed
         needs_redraw = (new_date != self._date or
                        self.headline != self._headline or
-                       self.title != self._title)
+                       self.title != self._title or
+                       self.show_date != self._show_date)
         if needs_redraw:
             self.image.fill((0, 0, 0))
             pygame.draw.line(self.image, (95, 255, 177), (5, 15), (5, 35), 2)
-            #pygame.draw.line(self.image, (95, 255, 177), (5, 15), (config.WIDTH - 154, 15), 2)
-            pygame.draw.line(self.image, (95, 255, 177), (config.WIDTH - 148, 15), (config.WIDTH - 13, 15), 2)
             pygame.draw.line(self.image, (95, 255, 177), (config.WIDTH - 13, 15), (config.WIDTH - 13, 35), 2)
 
-
-            text = config.FONTS[14].render(self._date, True, (95, 255, 177), (0, 0, 0))
-            self.image.blit(text, ((config.WIDTH - 141), 19))
-            headerposcount = 146
+            # Only show date/time on DATA module
+            if self.show_date:
+                text = config.FONTS[14].render(new_date, True, (95, 255, 177), (0, 0, 0))
+                self.image.blit(text, ((config.WIDTH - 141), 19))
+                pygame.draw.line(self.image, (95, 255, 177), (config.WIDTH - 148, 15), (config.WIDTH - 13, 15), 2)
+                headerposcount = 146
+            else:
+                headerposcount = 8
             for section in self.title:
                 headerposcount = headerposcount + 8
                 headerposcount_old = headerposcount
@@ -49,6 +54,7 @@ class Header(game.Entity):
             self._date = new_date
             self._headline = self.headline
             self._title = self.title[:]  # Copy to track changes
+            self._show_date = self.show_date
             
 
 

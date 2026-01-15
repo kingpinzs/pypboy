@@ -15,7 +15,9 @@ class Module(pypboy.SubModule):
         health.rect[0] = 4
         health.rect[1] = 40
         self.add(health)
-        self.menu = pypboy.ui.Menu(100, ["CND", "RAD", "EFF"], [self.show_cnd, self.show_rad, self.show_eff], 0)
+        self.menu = pypboy.ui.Menu(100, ["CND", "RAD", "EFF", "H2O", "FOD", "SLP"],
+                                   [self.show_cnd, self.show_rad, self.show_eff,
+                                    self.show_h2o, self.show_fod, self.show_slp], 0)
         self.menu.rect[0] = 4
         self.menu.rect[1] = 60
         self.add(self.menu)
@@ -29,6 +31,15 @@ class Module(pypboy.SubModule):
 
     def show_eff(self):
         print("EFF")
+
+    def show_h2o(self):
+        print("H2O")
+
+    def show_fod(self):
+        print("FOD")
+
+    def show_slp(self):
+        print("SLP")
 
 
 class Health(game.Entity):

@@ -24,12 +24,16 @@ MAP_FOCUS = (
 LOAD_CACHED_MAP = os.getenv('LOAD_CACHED_MAP', 'false').lower() in ('true', '1', 'yes')
 
 # Map zoom configuration
-MAP_MASTER_SURFACE_SIZE = 960    # Master surface size (square pixels)
 MAP_ZOOM_MIN = 0.5               # Max zoomed out (see more area)
 MAP_ZOOM_MAX = 3.0               # Max zoomed in (see less area)
 MAP_ZOOM_DEFAULT = 1.0           # Starting zoom level
 MAP_ZOOM_STEP = 0.15             # Zoom increment per keypress
 MAP_SMOOTHSCALE = False          # False = faster (scale), True = prettier (smoothscale)
+
+# World map settings (larger surface for extended panning)
+WORLD_MAP_SURFACE_SIZE = 960     # 2x screen width for pan area
+WORLD_MAP_RADIUS = 0.12          # Larger fetch radius (~27km)
+WORLD_MAP_BUFFER = 100           # Pixels from edge to trigger expansion
 
 # Platform-specific settings (set by main.py via platform_detect)
 GPIO_AVAILABLE = False
@@ -138,6 +142,10 @@ INVENTORY_OLD = [
 ".44 Magnum(20)",
 "Pulse Grenade (2)"
 ]
+
+# CRT Barrel Distortion Effect
+CRT_EFFECT_ENABLED = True
+CRT_EFFECT_STRENGTH = 0.05  # 0.0 = no curve, 0.05 = subtle, 0.15 = moderate, 0.25 = strong
 
 # Boot Sequence Configuration
 BOOT_SEQUENCE_ENABLED = True
