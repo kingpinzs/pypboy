@@ -118,7 +118,7 @@ class Maps(object):
                                                    print(tag["@v"])
                             if tag["@k"] == "tiger:county":
                                 print(tag["@v"])
-                        except Exception():
+                        except Exception:
                             pass
 
             for way in osm_dict['osm']['way']:
@@ -171,11 +171,13 @@ class Maps(object):
         for tag in self.tags:
             lat = tag[1] - self.origin[0]
             lng = tag[0] - self.origin[1]
+            # Some tags have 4 elements (lat, lon, name, amenity), some have only 3
+            amenity = tag[3] if len(tag) > 3 else None
             wp = [
                             tag[2],
                             (lat * w_coef) + offset[0],
                             (lng * h_coef) + offset[1],
-                            tag[3]
+                            amenity
             ]
             if flip_y:
                 wp[2] *= -1

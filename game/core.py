@@ -32,12 +32,19 @@ class Engine(object):
         else:
             interval = time.time() - self.last_render_time
             self.last_render_time = time.time()
-        self.root_children.clear(self.screen, self.background)
-        self.root_children.render(interval)
-        self.root_children.draw(self.screen)
+        # Fill with black background
+        self.screen.fill((0, 0, 0))
+        # Draw content first (modules)
         for group in self.groups:
             group.render(interval)
             group.draw(self.screen)
+            # Draw module's footer if it has one
+            if hasattr(group, 'footer'):
+                self.screen.blit(group.footer.image, group.footer.rect)
+        # Draw scanlines overlay LAST (on top with additive blend)
+        self.root_children.render(interval)
+        for sprite in self.root_children:
+            self.screen.blit(sprite.image, sprite.rect, special_flags=pygame.BLEND_RGBA_ADD)
         pygame.display.flip()
         return interval
 
@@ -74,7 +81,7 @@ class Entity(pygame.sprite.DirtySprite):
         self.groups = pygame.sprite.LayeredDirty()
         self.layer = layer
         self.dirty = 2
-        self.blendmode = pygame.BLEND_RGBA_ADD
+        self.blendmode = 0  # Normal blending for content
 
     def render(self, interval=0, *args, **kwargs):
         pass

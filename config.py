@@ -23,6 +23,14 @@ MAP_FOCUS = (
 # Load map from cache instead of internet
 LOAD_CACHED_MAP = os.getenv('LOAD_CACHED_MAP', 'false').lower() in ('true', '1', 'yes')
 
+# Map zoom configuration
+MAP_MASTER_SURFACE_SIZE = 960    # Master surface size (square pixels)
+MAP_ZOOM_MIN = 0.5               # Max zoomed out (see more area)
+MAP_ZOOM_MAX = 3.0               # Max zoomed in (see less area)
+MAP_ZOOM_DEFAULT = 1.0           # Starting zoom level
+MAP_ZOOM_STEP = 0.15             # Zoom increment per keypress
+MAP_SMOOTHSCALE = False          # False = faster (scale), True = prettier (smoothscale)
+
 # Platform-specific settings (set by main.py via platform_detect)
 GPIO_AVAILABLE = False
 IS_RASPBERRY_PI = False

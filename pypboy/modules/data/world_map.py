@@ -7,13 +7,20 @@ from pypboy.modules.data import entities
 
 class Module(pypboy.SubModule):
     label = "World Map"
-    zoom = 0.1  # World map starts at wider zoom level
 
     def __init__(self, *args, **kwargs):
         super(Module, self).__init__(*args, **kwargs)
         self.dragging = False  # Track drag state for touch/mouse panning
-        self.mapgrid = entities.Map(480, pygame.Rect(0, 0, config.WIDTH - 8, config.HEIGHT - 80))
-        self.mapgrid.fetch_map(config.MAP_FOCUS, self.zoom)
+
+        # Create map with display rect - world map uses wider initial area
+        display_rect = pygame.Rect(0, 0, config.WIDTH - 8, config.HEIGHT - 80)
+
+        self.mapgrid = entities.Map(config.WIDTH, display_rect, "Loading map...")
+        if config.LOAD_CACHED_MAP:
+            self.mapgrid.load_map(config.MAP_FOCUS, 0.1)  # Wider area for world map
+        else:
+            self.mapgrid.fetch_map(config.MAP_FOCUS, 0.1)  # Wider area for world map
+
         self.add(self.mapgrid)
         self.mapgrid.rect[0] = 4
         self.mapgrid.rect[1] = 40
@@ -38,15 +45,11 @@ class Module(pypboy.SubModule):
                 self.mapgrid.move_map(-rel[0], -rel[1])
 
     def handle_action(self, action, value=0):
-        """Handle zoom actions."""
+        """Handle zoom actions - fast surface-based zoom."""
         if action == "zoom_in":
-            self.zoom = max(0.01, self.zoom - 0.01)  # Prevent negative zoom
-            print(f"World map zoom: {self.zoom}")
-            self.mapgrid.fetch_map(config.MAP_FOCUS, self.zoom)
+            self.mapgrid.zoom_in()  # Fast! Just scales surface
         elif action == "zoom_out":
-            self.zoom = min(1.0, self.zoom + 0.01)  # Cap maximum zoom out
-            print(f"World map zoom: {self.zoom}")
-            self.mapgrid.fetch_map(config.MAP_FOCUS, self.zoom)
+            self.mapgrid.zoom_out()  # Fast! Just scales surface
         elif action in self.action_handlers:
             self.action_handlers[action]()
 

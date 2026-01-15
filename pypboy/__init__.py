@@ -64,9 +64,20 @@ class BaseModule(game.EntityGroup):
         else:
             print("No submodule at %d" % module)
 
-    def render(self, interval): 
+    def update(self):
+        if hasattr(self, 'active') and self.active:
+            self.active.update()
+        super(BaseModule, self).update()
+
+    def render(self, interval):
         self.active.render(interval)
         super(BaseModule, self).render(interval)
+
+    def draw(self, surface):
+        """Draw submodule first, then this module's sprites (footer)."""
+        if hasattr(self, 'active') and self.active:
+            self.active.draw(surface)
+        return super(BaseModule, self).draw(surface)
 
     def handle_action(self, action, value=0):
         if action.startswith("knob_"):
@@ -123,6 +134,11 @@ class SubModule(game.EntityGroup):
 
         if config.SOUND_ENABLED:
             self.submodule_change_sfx = pygame.mixer.Sound('sounds/submodule_change.ogg')
+
+    def update(self):
+        """Propagate update to all child entities."""
+        for sprite in self:
+            sprite.update()
 
     def handle_action(self, action, value=0):
         if action.startswith("dial_"):

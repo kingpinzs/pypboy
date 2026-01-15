@@ -9,69 +9,138 @@ from random import choice
 
 
 class Map(game.Entity):
+    """
+    Map entity with surface-based zoom (Fallout Pip-Boy style).
+    Simplified version closer to original working code.
+    """
 
     _mapper = None
-    _transposed = None
     _size = 0
     _fetching = None
     _map_surface = None
-    _loading_size = 0
     _render_rect = None
+    _zoom_level = 1.0
 
     def __init__(self, width, render_rect=None, loading_type="Loading map...", *args, **kwargs):
         self._mapper = pypboy.data.Maps()
         self._size = width
         self._map_surface = pygame.Surface((width, width))
-        self._render_rect = render_rect
+        self._render_rect = render_rect if render_rect else pygame.Rect(0, 0, width, width)
+        self._zoom_level = config.MAP_ZOOM_DEFAULT
+        self._data_loaded = False
+        self._is_loading = False
+        self._needs_display_update = False  # Flag for thread-safe display updates
+
         super(Map, self).__init__((width, width), *args, **kwargs)
         text = config.FONTS[14].render(loading_type, True, (95, 255, 177), (0, 0, 0))
         self.image.blit(text, (10, 10))
 
     def fetch_map(self, position, radius):
+        if self._is_loading:
+            return
+        self._is_loading = True
         self._fetching = threading.Thread(target=self._internal_fetch_map, args=(position, radius))
         self._fetching.start()
 
     def _internal_fetch_map(self, position, radius):
         self._mapper.fetch_by_coordinate(position, radius)
-        self.redraw_map()
-        
+        self._redraw_map()
+        self._data_loaded = True
+        self._is_loading = False
+
     def load_map(self, position, radius):
+        if self._is_loading:
+            return
+        self._is_loading = True
         self._fetching = threading.Thread(target=self._internal_load_map, args=(position, radius))
         self._fetching.start()
 
     def _internal_load_map(self, position, radius):
         self._mapper.load_map_coordinates(position, radius)
-        self.redraw_map()
+        self._redraw_map()
+        self._data_loaded = True
+        self._is_loading = False
 
-    def update(self, *args, **kwargs):
-        super(Map, self).update(*args, **kwargs)
+    def _redraw_map(self):
+        """Render map data to _map_surface (called from background thread)."""
+        self._map_surface.fill((0, 0, 0))
+
+        # Draw all roads
+        for way in self._mapper.transpose_ways((self._size, self._size), (self._size / 2, self._size / 2)):
+            pygame.draw.lines(self._map_surface, (85, 251, 167), False, way, 2)
+
+        # Draw all POIs
+        for tag in self._mapper.transpose_tags((self._size, self._size), (self._size / 2, self._size / 2)):
+            if len(tag) >= 4 and tag[3] in config.AMENITIES:
+                image = config.AMENITIES[tag[3]]
+                scaled_icon = pygame.transform.scale(image, (10, 10))
+                self._map_surface.blit(scaled_icon, (int(tag[1]), int(tag[2])))
+                text = config.FONTS[12].render(tag[0], True, (95, 255, 177), (0, 0, 0))
+                self._map_surface.blit(text, (int(tag[1]) + 17, int(tag[2]) + 4))
+
+        # Signal main thread to update display (thread-safe)
+        self._needs_display_update = True
+
+    def _apply_zoom(self):
+        """Apply current zoom level to display."""
+        if self._zoom_level == 1.0:
+            # No zoom - just blit the render rect area
+            self.image.fill((0, 0, 0))
+            self.image.blit(self._map_surface, (0, 0), area=self._render_rect)
+        else:
+            # Scale the map surface
+            scaled_size = int(self._size * self._zoom_level)
+            scaled = pygame.transform.scale(self._map_surface, (scaled_size, scaled_size))
+
+            # Calculate the viewport rect on scaled surface
+            # Center the view
+            scale_factor = self._zoom_level
+            src_x = int(self._render_rect.x * scale_factor)
+            src_y = int(self._render_rect.y * scale_factor)
+            src_w = self._render_rect.width
+            src_h = self._render_rect.height
+
+            # Clamp to bounds
+            src_x = max(0, min(src_x, scaled_size - src_w))
+            src_y = max(0, min(src_y, scaled_size - src_h))
+
+            self.image.fill((0, 0, 0))
+            self.image.blit(scaled, (0, 0), area=pygame.Rect(src_x, src_y, src_w, src_h))
+
+    def zoom_in(self):
+        """Zoom in - fast, no data re-fetch."""
+        new_zoom = min(config.MAP_ZOOM_MAX, self._zoom_level + config.MAP_ZOOM_STEP)
+        if new_zoom != self._zoom_level:
+            self._zoom_level = new_zoom
+            if self._data_loaded:
+                self._apply_zoom()
+                self.dirty = 1
+            print(f"Zoom: {self._zoom_level:.2f}")
+
+    def zoom_out(self):
+        """Zoom out - fast, no data re-fetch."""
+        new_zoom = max(config.MAP_ZOOM_MIN, self._zoom_level - config.MAP_ZOOM_STEP)
+        if new_zoom != self._zoom_level:
+            self._zoom_level = new_zoom
+            if self._data_loaded:
+                self._apply_zoom()
+                self.dirty = 1
+            print(f"Zoom: {self._zoom_level:.2f}")
 
     def move_map(self, x, y):
+        """Pan the map."""
         self._render_rect.move_ip(x, y)
+        if self._data_loaded:
+            self._apply_zoom()
+            self.dirty = 1
 
-    def redraw_map(self, coef=1):
-        self._map_surface.fill((0, 0, 0))
-        for way in self._mapper.transpose_ways((self._size / coef, self._size / coef), (self._size / 2, self._size / 2)):
-            pygame.draw.lines(
-                    self._map_surface,
-                    (85, 251, 167),
-                    False,
-                    way,
-                    2
-            )
-        for tag in self._mapper.transpose_tags((self._size / coef, self._size / coef), (self._size / 2, self._size / 2)):
-            if tag[3] in config.AMENITIES:
-                print("Known amenity: %s as %s" % (tag[0],tag[3]))
-                image = config.AMENITIES[tag[3]]
-                pygame.transform.scale(image, (10, 10))
-                self._map_surface.blit(image, (tag[1], tag[2]))
-                text = config.FONTS[12].render(tag[0], True, (95, 255, 177), (0, 0, 0))
-                self._map_surface.blit(text, (tag[1] + 17, tag[2] + 4))
-            else:
-                print("Unknown amenity: %s") % tag[3]
-                image = config.MAP_ICONS['misc']
-
-        self.image.blit(self._map_surface, (0, 0), area=self._render_rect)
+    def update(self, *args, **kwargs):
+        # Check if background thread finished rendering and needs display update
+        if self._needs_display_update:
+            self._needs_display_update = False
+            self._apply_zoom()
+            self.dirty = 1  # Mark sprite as needing redraw
+        super(Map, self).update(*args, **kwargs)
 
 class MapSquare(game.Entity):
     _mapper = None

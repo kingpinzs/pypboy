@@ -158,6 +158,9 @@ class Scanlines(game.Entity):
 
     def __init__(self, width, height, gap, speed, colours, full_push=False):
         super(Scanlines, self).__init__((width, height))
+        # Create alpha-enabled surface for transparency
+        self.image = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.rect = self.image.get_rect()
         self.width = width
         self.height = height
         self.move = gap * len(colours)
@@ -166,7 +169,7 @@ class Scanlines(game.Entity):
         self.rect[1] = 0
         self.top = 0.0
         self.speed = speed
-        self.full_push =full_push
+        self.full_push = full_push
         colour = 0
         area = pygame.Rect(0, self.rect[1] * self.speed, self.width, self.gap)
         while area.top <= self.height - self.gap:
