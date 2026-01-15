@@ -82,6 +82,20 @@ class BaseModule(game.EntityGroup):
         if hasattr(self, 'active') and self.active:
             self.active.handle_event(event)
 
+    def handle_click(self, pos):
+        """Delegate click to active submodule."""
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_click(pos)
+
+    def handle_click_release(self, pos):
+        """Delegate click release to active submodule."""
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_click_release(pos)
+
+    def handle_drag(self, pos, rel):
+        """Delegate drag to active submodule (for map panning)."""
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_drag(pos, rel)
 
     def handle_pause(self):
         self.paused = True
@@ -118,6 +132,19 @@ class SubModule(game.EntityGroup):
             self.action_handlers[action]()
 
     def handle_event(self, event):
+        pass
+
+    def handle_click(self, pos):
+        """Handle click - select menu item if menu exists."""
+        if hasattr(self, 'menu') and self.menu:
+            self.menu.handle_click(pos)
+
+    def handle_click_release(self, pos):
+        """Override in subclasses that need release handling (maps)."""
+        pass
+
+    def handle_drag(self, pos, rel):
+        """Override in subclasses that need drag handling (maps)."""
         pass
 
     def handle_pause(self):

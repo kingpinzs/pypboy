@@ -92,6 +92,7 @@ class Menu(game.Entity):
         self.callbacks = callbacks
         self.menuXVal = xoffset
         self.selected = 0
+        self.item_rects = []  # Store clickable regions (relative to menu)
         self.select(selected)
 
         if config.SOUND_ENABLED:
@@ -115,16 +116,42 @@ class Menu(game.Entity):
                     self.dial_move_sfx.play()
                 self.select(self.selected + 1)
 
+    def handle_click(self, pos):
+        """Handle click to select menu item."""
+        # Convert screen position to menu-relative coordinates
+        rel_x = pos[0] - self.rect[0]
+        rel_y = pos[1] - self.rect[1]
+
+        for i, item_rect in enumerate(self.item_rects):
+            if item_rect.collidepoint(rel_x, rel_y):
+                if config.SOUND_ENABLED:
+                    self.dial_move_sfx.play()
+                self.select(i)
+                return True
+        return False
+
     def redraw(self):
         self.image.fill((0, 0, 0))
+        self.item_rects = []  # Reset clickable regions
         offset = 5
         for i in range(len(self.items)):
             text = config.FONTS[14].render(" %s " % self.items[i], True, (105, 255, 187), (0, 0, 0))
+            text_size = text.get_size()
+
+            # Store clickable rectangle (relative to menu origin)
+            item_rect = pygame.Rect(
+                self.menuXVal,
+                offset - 2,
+                text_size[0] + 10,
+                text_size[1] + 3
+            )
+            self.item_rects.append(item_rect)
+
             if i == self.selected:
-                selected_rect = (self.menuXVal, offset - 2, text.get_size()[0] + 10, text.get_size()[1] + 3)
+                selected_rect = (self.menuXVal, offset - 2, text_size[0] + 10, text_size[1] + 3)
                 pygame.draw.rect(self.image, (95, 255, 177), selected_rect, 2)
             self.image.blit(text, (self.menuXVal + 5, offset))
-            offset += text.get_size()[1] + 6
+            offset += text_size[1] + 6
 
 
 class Scanlines(game.Entity):

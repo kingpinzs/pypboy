@@ -1,5 +1,6 @@
 import pygame
 import time
+import config
 
 class Engine(object):
 
@@ -13,7 +14,8 @@ class Engine(object):
         self.window = pygame.display.set_mode((width, height))
         self.screen = pygame.display.get_surface()
         pygame.display.set_caption(title)
-        pygame.mouse.set_visible(False)
+        # Show cursor on desktop, hide on Pi (touch mode)
+        pygame.mouse.set_visible(config.SHOW_CURSOR)
 
         self.groups = []
         self.root_children = EntityGroup()

@@ -85,19 +85,86 @@ class Pypboy(game.core.Engine):
             if hasattr(self, 'active'):
                 self.active.handle_action(action)
 
+    def handle_click(self, pos):
+        """Route click/tap to active module for screen interactions."""
+        x, y = pos
+
+        # Ignore header region (y < 40)
+        if y < 40:
+            return
+
+        # Ignore footer region (y > HEIGHT - 53) - tabs are button-controlled
+        if y > config.HEIGHT - 53:
+            return
+
+        # Main content area - delegate to active module
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_click(pos)
+
+    def handle_click_release(self, pos):
+        """Route click/tap release to active module."""
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_click_release(pos)
+
+    def handle_drag(self, pos, rel):
+        """Route drag to active module (for map panning)."""
+        if hasattr(self, 'active') and self.active:
+            self.active.handle_drag(pos, rel)
+
     def handle_event(self, event):
+        # Keyboard events - keep existing for module/submodule switching
         if event.type == pygame.KEYDOWN:
-            if (event.key == pygame.K_ESCAPE):
+            if event.key == pygame.K_ESCAPE:
                 self.running = False
             else:
                 if event.key in config.ACTIONS:
                     self.handle_action(config.ACTIONS[event.key])
+
+        # Mouse events for desktop interaction
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click / touch
+                self.handle_click(event.pos)
+            elif event.button == 4:  # Scroll up - navigate menu
+                self.handle_action("dial_up")
+            elif event.button == 5:  # Scroll down - navigate menu
+                self.handle_action("dial_down")
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.handle_click_release(event.pos)
+
+        elif event.type == pygame.MOUSEMOTION:
+            if event.buttons[0]:  # Left button held - drag
+                self.handle_drag(event.pos, event.rel)
+
+        # SDL2 Touch/Finger events (for Pi touchscreen)
+        elif event.type == pygame.FINGERDOWN:
+            # Convert normalized coords (0.0-1.0) to pixels
+            x = int(event.x * config.WIDTH)
+            y = int(event.y * config.HEIGHT)
+            self.handle_click((x, y))
+
+        elif event.type == pygame.FINGERUP:
+            x = int(event.x * config.WIDTH)
+            y = int(event.y * config.HEIGHT)
+            self.handle_click_release((x, y))
+
+        elif event.type == pygame.FINGERMOTION:
+            x = int(event.x * config.WIDTH)
+            y = int(event.y * config.HEIGHT)
+            # dx/dy are also normalized, convert to pixel delta
+            rel_x = int(event.dx * config.WIDTH)
+            rel_y = int(event.dy * config.HEIGHT)
+            self.handle_drag((x, y), (rel_x, rel_y))
+
         elif event.type == pygame.QUIT:
             self.running = False
+
         elif event.type == config.EVENTS['SONG_END']:
             if config.SOUND_ENABLED:
                 if hasattr(config, 'radio'):
                     config.radio.handle_event(event)
+
         else:
             if hasattr(self, 'active'):
                 self.active.handle_event(event)

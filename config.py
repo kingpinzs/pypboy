@@ -12,6 +12,17 @@ MAP_FOCUS = (-118.5723894, 34.3917171)  # Santa Clarita / CodeNinjasValencia
 
 LOAD_CACHED_MAP = False
 
+# Platform-specific settings (set by main.py via platform_detect)
+GPIO_AVAILABLE = False
+IS_RASPBERRY_PI = False
+SHOW_CURSOR = True  # True on desktop, False on Pi
+
+# Touch input device (for Raspberry Pi with Adafruit TFT)
+TOUCH_DEVICE = '/dev/input/event2'
+
+# Sound settings
+SOUND_ENABLED = True
+
 EVENTS = {
     'SONG_END': pygame.USEREVENT + 1
 }
