@@ -131,6 +131,14 @@ INVENTORY_OLD = [
 "Pulse Grenade (2)"
 ]
 
+# Boot Sequence Configuration
+BOOT_SEQUENCE_ENABLED = True
+BOOT_CHAR_DELAY = 0.04          # 40ms per character
+BOOT_CURSOR_BLINK = 0.5         # 500ms cursor blink interval
+BOOT_LINE_PAUSE_BLINKS = 3      # Cursor blinks between lines
+BOOT_INITIAL_BLINKS = 3         # Cursor blinks before typing starts
+BOOT_SCROLL_SPEED = 300         # Pixels per second for scroll-up
+BOOT_SKIP_KEYS = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE]
 
 pygame.font.init()
 FONTS = {}

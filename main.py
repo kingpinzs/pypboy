@@ -44,6 +44,17 @@ except Exception:
     config.SOUND_ENABLED = False
 
 if __name__ == "__main__":
+    # Run boot sequence before main interface
+    if config.BOOT_SEQUENCE_ENABLED:
+        pygame.init()
+        screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
+        pygame.display.set_caption('PIP-OS V7.1.0.8')
+        pygame.mouse.set_visible(config.SHOW_CURSOR)
+
+        from pypboy.boot import BootSequence
+        boot = BootSequence(screen)
+        boot.run()
+
     boy = Pypboy('Pip-Boy 3000', config.WIDTH, config.HEIGHT)
     print("RUN")
     boy.run()
