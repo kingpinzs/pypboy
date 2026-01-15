@@ -262,47 +262,46 @@ class GalaxyNewsRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Galaxy News Radio'
         self.directory = 'sounds/radio/gnr/'
-        super(GalaxyNewsRadio, self).__init__(self, *args, **kwargs)
+        super(GalaxyNewsRadio, self).__init__(*args, **kwargs)
 
 class DiamondCityRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Diamond City Radio'
         self.directory = 'sounds/radio/DCR/'
-        super(DiamondCityRadio, self).__init__(self, *args, **kwargs)
+        super(DiamondCityRadio, self).__init__(*args, **kwargs)
 
 class EnclaveRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Enclave Radio'
         self.directory = 'sounds/radio/Enclave/'
-        super(EnclaveRadio, self).__init__(self, *args, **kwargs)
+        super(EnclaveRadio, self).__init__(*args, **kwargs)
 
 class InstituteRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Institute Radio'
         self.directory = 'sounds/radio/Institute/'
-        super(InstituteRadio, self).__init__(self, *args, **kwargs)
+        super(InstituteRadio, self).__init__(*args, **kwargs)
 
 class MinutemenRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Minutemen Radio'
         self.directory = 'sounds/radio/Minutemen/'
-        super(MinutemenRadio, self).__init__(self, *args, **kwargs)
+        super(MinutemenRadio, self).__init__(*args, **kwargs)
 
 class Vault101Radio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Vault 101 Radio'
         self.directory = 'sounds/radio/V101/'
-        super(Vault101Radio, self).__init__(self, *args, **kwargs)
+        super(Vault101Radio, self).__init__(*args, **kwargs)
 
 class ViolinRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Violin Radio'
         self.directory = 'sounds/radio/Violin/'
-        super(ViolinRadio, self).__init__(self, *args, **kwargs)
+        super(ViolinRadio, self).__init__(*args, **kwargs)
 
 class F3Radio(RadioStation):
     def __init__(self, *args, **kwargs):
-        
         self.label = 'F3 Radio'
         self.directory = 'sounds/radio/F3/'
-        super(F3Radio, self).__init__(self, *args, **kwargs)
+        super(F3Radio, self).__init__(*args, **kwargs)
