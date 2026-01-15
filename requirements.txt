@@ -3,3 +3,4 @@ requests
 xmltodict
 numpy
 confuse
+python-dotenv

@@ -1,4 +1,9 @@
+import os
 import pygame
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 WIDTH = 480
 HEIGHT = 320
@@ -6,11 +11,17 @@ HEIGHT = 320
 # OUTPUT_WIDTH = 320
 # OUTPUT_HEIGHT = 240
 
-# MAP_FOCUS = (-5.9347681, 54.5889076)  # Belfast
-# MAP_FOCUS = (-102.3016145, 21.8841274)  # Old Default
-MAP_FOCUS = (-118.5723894, 34.3917171)  # Santa Clarita / CodeNinjasValencia
+# GPS coordinates from .env (longitude, latitude)
+# Default: Santa Clarita, CA
+_default_lon = -118.5723894
+_default_lat = 34.3917171
+MAP_FOCUS = (
+    float(os.getenv('MAP_LONGITUDE', _default_lon)),
+    float(os.getenv('MAP_LATITUDE', _default_lat))
+)
 
-LOAD_CACHED_MAP = False
+# Load map from cache instead of internet
+LOAD_CACHED_MAP = os.getenv('LOAD_CACHED_MAP', 'false').lower() in ('true', '1', 'yes')
 
 # Platform-specific settings (set by main.py via platform_detect)
 GPIO_AVAILABLE = False
@@ -18,7 +29,7 @@ IS_RASPBERRY_PI = False
 SHOW_CURSOR = True  # True on desktop, False on Pi
 
 # Touch input device (for Raspberry Pi with Adafruit TFT)
-TOUCH_DEVICE = '/dev/input/event2'
+TOUCH_DEVICE = os.getenv('TOUCH_DEVICE', '/dev/input/event2')
 
 # Sound settings
 SOUND_ENABLED = True

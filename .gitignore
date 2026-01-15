@@ -4,3 +4,9 @@
 .settings
 lib
 *.mp3
+
+# Environment config (contains personal GPS coordinates)
+.env
+
+# Map cache
+map.cache
