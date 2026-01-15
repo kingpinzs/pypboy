@@ -42,6 +42,14 @@ TOUCH_DEVICE = os.getenv('TOUCH_DEVICE', '/dev/input/event2')
 # Sound settings
 SOUND_ENABLED = True
 
+# Radio waveform visualization settings
+RADIO_WAVEFORM_WIDTH = 240
+RADIO_WAVEFORM_HEIGHT = 180
+RADIO_WAVEFORM_X = 220
+RADIO_WAVEFORM_Y = 60
+RADIO_WAVEFORM_COLOR = (95, 255, 177)
+RADIO_WAVEFORM_AXIS_COLOR = (60, 180, 120)
+
 EVENTS = {
     'SONG_END': pygame.USEREVENT + 1
 }

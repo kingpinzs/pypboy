@@ -328,6 +328,35 @@ class RadioStation(game.Entity):
         print(files)
         return files
 
+
+class RadioOff:
+    """
+    Pseudo-station for turning radio OFF.
+    Positioned at top of station list matching Fallout style.
+    """
+    label = "OFF"
+
+    def __init__(self):
+        self.state = 'stopped'
+
+    def play(self):
+        """Stop any playing music."""
+        self.stop()
+
+    def play_random(self):
+        """Stop any playing music."""
+        self.stop()
+
+    def stop(self):
+        """Stop the radio immediately."""
+        if config.SOUND_ENABLED:
+            try:
+                pygame.mixer.music.stop()
+            except:
+                pass
+        self.state = 'stopped'
+
+
 class GalaxyNewsRadio(RadioStation):
     def __init__(self, *args, **kwargs):
         self.label = 'Galaxy News Radio'
