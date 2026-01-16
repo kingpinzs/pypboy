@@ -164,7 +164,7 @@ class Entity(pygame.sprite.DirtySprite):
         self.image = self.image.convert()
         self.groups = pygame.sprite.LayeredDirty()
         self.layer = layer
-        self.dirty = 2
+        self.dirty = 1  # Redraw once, then stop (not 2 which means "always redraw")
         self.blendmode = 0  # Normal blending for content
 
     def render(self, interval=0, *args, **kwargs):
