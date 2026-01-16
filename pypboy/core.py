@@ -180,13 +180,14 @@ class Pypboy(game.core.Engine):
 
     def run(self):
         self.running = True
+        clock = pygame.time.Clock()
         while self.running:
             self.check_gpio_input()
             for event in pygame.event.get():
                 self.handle_event(event)
             self.update()
             self.render()
-            pygame.time.wait(1)
+            clock.tick(30)  # Cap at 30 FPS to reduce CPU usage
 
         try:
             pygame.mixer.quit()
